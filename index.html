@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>For Nimra</title>
+    <style>
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: #000; overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        #screen1 {
+            display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh;
+        }
+
+        .viewport {
+            position: relative; width: 100%; height: 70%;
+            display: flex; justify-content: center; 
+            perspective: 1500px; -webkit-perspective: 1500px;
+        }
+
+        .door {
+            width: 70%; height: 100%; background: #4e342e; border: 6px solid #2d1d1a;
+            border-radius: 10px; z-index: 10; transform-origin: left;
+            transition: transform 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex; align-items: center; justify-content: flex-end;
+            cursor: pointer;
+        }
+
+        .door-open { transform: rotateY(-110deg); -webkit-transform: rotateY(-110deg); }
+
+        .door::after {
+            content: ''; width: 25px; height: 25px;
+            background: radial-gradient(circle, #ffd700, #b8860b); border-radius: 50%; margin-right: 20px;
+        }
+
+        /* The Wolf Sticker holding the Rose */
+        .wolf-sticker {
+            position: absolute; top: 50%; left: 50%; 
+            transform: translate(-50%, -50%); -webkit-transform: translate(-50%, -50%);
+            font-size: 110px; cursor: pointer; opacity: 0; z-index: 1;
+            transition: opacity 1s ease 0.8s, transform 1.5s ease-in;
+            display: flex; flex-direction: column; align-items: center;
+            pointer-events: none;
+        }
+
+        .rose-in-hand { font-size: 55px; margin-top: -45px; filter: drop-shadow(0 0 5px red); }
+
+        .zoom-out { transform: translate(-50%, -50%) scale(10) !important; opacity: 0 !important; }
+
+        .status-text { color: white; margin-top: 40px; font-size: 1.3rem; text-align: center; }
+
+        /* Fireworks Screen */
+        #screen2 {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 100;
+        }
+
+        .firework-text {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            color: #ff8fa3; font-size: 2.8rem; font-weight: bold; text-align: center;
+            width: 90%; text-shadow: 0 0 15px #ff4d6d, 0 0 30px #ff4d6d; pointer-events: none;
+            line-height: 1.2;
+        }
+
+        /* Rose Petals */
+        .petal {
+            position: fixed; background-color: #ff4d6d; border-radius: 150% 0 150% 0;
+            opacity: 0.8; z-index: 5; animation: fall linear forwards;
+        }
+        @keyframes fall {
+            0% { transform: translateY(-10vh) rotate(0deg); opacity: 0; }
+            100% { transform: translateY(110vh) translateX(40px) rotate(360deg); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="screen1">
+        <div class="viewport">
+            <div class="wolf-sticker" id="wolfWrapper" onclick="takeRose()">
+                <span>🐺</span>
+                <span class="rose-in-hand">🌹</span>
+            </div>
+            <div class="door" id="mainDoor" onclick="openTheDoor()"></div>
+        </div>
+        <div class="status-text" id="mainText">please knock!</div>
+        <div id="takeText" class="status-text" style="display:none; color:#ff8fa3;">please take it 🌹</div>
+    </div>
+
+    <div id="screen2">
+        <canvas id="fireworksCanvas"></canvas>
+        <div class="firework-text">Happy Rose Day<br>Nimra</div>
+    </div>
+
+    <script>
+        function triggerHaptic(pattern) {
+            if (typeof navigator.vibrate === "function") {
+                navigator.vibrate(pattern);
+            }
+        }
+
+        function openTheDoor() {
+            document.getElementById('mainDoor').classList.add('door-open');
+            document.getElementById('mainText').style.opacity = '0';
+            triggerHaptic(50);
+
+            setTimeout(() => {
+                document.getElementById('mainText').style.display = 'none';
+                document.getElementById('takeText').style.display = 'block';
+                const wolf = document.getElementById('wolfWrapper');
+                wolf.style.opacity = '1';
+                wolf.style.pointerEvents = 'auto'; 
+                setInterval(createPetal, 500);
+            }, 800);
+        }
+
+        function takeRose() {
+            document.getElementById('wolfWrapper').classList.add('zoom-out');
+            triggerHaptic([100, 50, 100]);
+            setTimeout(() => {
+                document.getElementById('screen1').style.display = 'none';
+                document.getElementById('screen2').style.display = 'block';
+                startFireworks();
+            }, 1000);
+        }
+
+        function createPetal() {
+            const p = document.createElement('div');
+            p.className = 'petal';
+            p.style.width = p.style.height = Math.random() * 12 + 8 + 'px';
+            p.style.left = Math.random() * 100 + 'vw';
+            p.style.animationDuration = Math.random() * 2 + 3 + 's';
+            document.body.appendChild(p);
+            setTimeout(() => p.remove(), 5000);
+        }
+
+        function startFireworks() {
+            const canvas = document.getElementById('fireworksCanvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            let particles = [];
+            
+            function Particle(x, y, color) {
+                this.x = x; this.y = y; this.color = color;
+                this.velocity = { x: (Math.random() - 0.5) * 10, y: (Math.random() - 0.5) * 10 };
+                this.alpha = 1;
+                this.update = () => {
+                    this.velocity.y += 0.05;
+                    this.x += this.velocity.x; this.y += this.velocity.y;
+                    this.alpha -= 0.01;
+                };
+                this.draw = () => {
+                    ctx.globalAlpha = this.alpha;
+                    ctx.beginPath(); ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
+                    ctx.fillStyle = this.color; ctx.fill();
+                };
+            }
+
+            function animate() {
+                ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                ctx.fillRect(0,0,canvas.width, canvas.height);
+                if (Math.random() < 0.1) {
+                    const x = Math.random() * canvas.width;
+                    const y = Math.random() * canvas.height * 0.5;
+                    const color = `hsl(${Math.random() * 360}, 100%, 75%)`;
+                    for(let i=0; i<30; i++) particles.push(new Particle(x, y, color));
+                }
+                particles.forEach((p, i) => {
+                    if (p.alpha <= 0) particles.splice(i, 1);
+                    else { p.update(); p.draw(); }
+                });
+                requestAnimationFrame(animate);
+            }
+            animate();
+        }
+    </script>
+</body>
+</html>
